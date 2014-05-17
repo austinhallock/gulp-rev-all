@@ -24,19 +24,21 @@ module.exports = function(options) {
             first = !first;
         }
 
-        if (file.isNull() || tools.isFileSkipped(file)) {
+        if (file.isNull()) {
             return callback(null, file);
         } else if (file.isStream()) {
             throw new Error('Streams are not supported!');
         } 
 
         // Only process references in these types of files, otherwise we'll corrupt images etc
-        switch(path.extname(file.path)) {
-            case '.js':
-            case '.css':
-            case '.html':
-                tools.revReferencesInFile(file);
-        }
+        if(!tools.isFileSkipped(file)) {
+	        switch(path.extname(file.path)) {
+	            case '.js':
+	            case '.css':
+	            case '.html':
+	                tools.revReferencesInFile(file);
+	        }
+	      }
 
         // Rename this file with the revion hash if doesn't match ignore list
         if (!tools.isFileIgnored(file)) {            
