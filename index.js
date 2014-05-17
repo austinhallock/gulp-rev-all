@@ -12,6 +12,7 @@ module.exports = function(options) {
     options = options || {};
     options.hashLength = options.hashLength || 8;
     options.ignore = options.ignore || options.ignoredExtensions || [ /^\/favicon.ico$/g ];
+    options.skip = options.skip || [];
 
     return through.obj(function (file, enc, callback) {
 
@@ -23,7 +24,7 @@ module.exports = function(options) {
             first = !first;
         }
 
-        if (file.isNull()) {
+        if (file.isNull() || tools.isFileSkipped(file)) {
             return callback(null, file);
         } else if (file.isStream()) {
             throw new Error('Streams are not supported!');

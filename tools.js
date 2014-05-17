@@ -2,10 +2,11 @@ var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
 var gutil = require('gulp-util');
+var slash = require('slash');
 
 module.exports = function(options) {
 
-    var filepathRegex = /.*?(?:\'|\")([a-z0-9_\-\/\.]+?\.[a-z]{2,})(?:(?:\?|\#)[^'"]*?|)(?:\'|\").*?/ig;
+    var filepathRegex = /.*?(?:\'|\")([a-z0-9_\-\/\.]+?\.[a-z]{2,8})(?:(?:\?|\#)[^'"]*?|)(?:\'|\").*?/ig;
     var fileMap = {};
     
     // Taken from gulp-rev: https://github.com/sindresorhus/gulp-rev
@@ -20,6 +21,18 @@ module.exports = function(options) {
 
         for (var i = options.ignore.length; i--;) {
             var regex = (options.ignore[i] instanceof RegExp) ? options.ignore[i] : new RegExp(options.ignore[i] + '$', "ig");
+            if (filename.match(regex)) return true;
+        }
+        return false;
+    };
+
+    var isFileSkipped = function (file) {
+
+        var filename = (typeof file === 'string') ? file : file.path;
+        filename = filename.substr(options.rootDir.length);
+
+        for (var i = options.skip.length; i--;) {
+            var regex = (options.skip[i] instanceof RegExp) ? options.skip[i] : new RegExp(options.skip[i] + '$', "ig");
             if (filename.match(regex)) return true;
         }
         return false;
@@ -44,7 +57,12 @@ module.exports = function(options) {
         } 
 
         filePathReved = path.join(path.dirname(filePath), filename);
-
+				
+				// since windows likes to make this \\ instead of /
+				if (process.platform === 'win32') {
+				  filePathReved = slash(filePathReved);
+				}
+				
         fileMap[filePath] = filePathReved;
         return fileMap[filePath];
     };
@@ -65,8 +83,9 @@ module.exports = function(options) {
 
             // In the case where the referenced file is relative to the base path
             var fullpath = path.join(options.rootDir, result[1]);
+
             if (fs.existsSync(fullpath)) {
-                replaceMap[result[1]] = path.join(path.dirname(result[1]), path.basename(revFile(fullpath)));
+                replaceMap[result[1]] = slash(path.join(path.dirname(result[1]), path.basename(revFile(fullpath))));
                 gutil.log('gulp-rev-all:', 'Found root reference [', result[1], '] -> [', replaceMap[result[1]], ']');
                 continue;
             }
@@ -94,7 +113,8 @@ module.exports = function(options) {
     return {
         revFile: revFile,
         revReferencesInFile: revReferencesInFile,
-        isFileIgnored: isFileIgnored
+        isFileIgnored: isFileIgnored,
+        isFileSkipped: isFileSkipped
     };
 
 };
