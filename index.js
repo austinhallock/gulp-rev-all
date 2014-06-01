@@ -13,6 +13,14 @@ module.exports = function(options) {
     options.hashLength = options.hashLength || 8;
     options.ignore = options.ignore || options.ignoredExtensions || [ /^\/favicon.ico$/g ];
     options.skip = options.skip || [];
+    
+    // Taken from gulp-rev: https://github.com/sindresorhus/gulp-rev
+    var md5 = function (str) {
+        return crypto.createHash('md5').update(str, 'utf8').digest('hex');
+    };
+    
+    // new hash for index.html (forced, not based on contents)
+    options.rootHash = md5(Math.random().toString()).slice(0, options.hashLength);
 
     return through.obj(function (file, enc, callback) {
 
@@ -36,6 +44,7 @@ module.exports = function(options) {
 	            case '.js':
 	            case '.css':
 	            case '.html':
+	            case '.appcache':
 	                tools.revReferencesInFile(file);
 	        }
 	      }

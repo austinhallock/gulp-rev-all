@@ -6,13 +6,16 @@ var slash = require('slash');
 
 module.exports = function(options) {
 
-    var filepathRegex = /.*?(?:\'|\")([a-z0-9_\-\/\.]+?\.[a-z]{2,8})(?:(?:\?|\#)[^'"]*?|)(?:\'|\").*?/ig;
+    var filepathRegex = /.*?(?:\'|\"|^)([a-z0-9_\-\/\.]+?\.[a-z]{2,8})(?:(?:\?|\#)[^'"]*?|)(?:\'|\"|$).*?/igm;
     var fileMap = {};
     
     // Taken from gulp-rev: https://github.com/sindresorhus/gulp-rev
     var md5 = function (str) {
         return crypto.createHash('md5').update(str, 'utf8').digest('hex');
     };
+    
+    // new hash for index.html (forced, not based on contents)
+    var rootHash = options.rootHash;
 
     var isFileIgnored = function (file) {
 
@@ -47,9 +50,12 @@ module.exports = function(options) {
         var filename,
             filenameReved,
             ext = path.extname(filePath);
-
+       
         if (isFileIgnored(filePath)) {
             filename = path.basename(filePath);
+        } else if(options.root && options.root == path.basename(filePath)) { // hack to revision index.html differently so it always gets a new revision (otherwise cache-key.appcache doesn't cause change)
+            var hash = rootHash;
+            filename = path.basename(filePath, ext) + '-' + hash + ext;
         } else {
             var contents = fs.readFileSync(filePath).toString();
             var hash = md5(contents).slice(0, options.hashLength);
